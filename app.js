@@ -1,6 +1,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
@@ -8,13 +9,13 @@ const AUTH_URL = 'http://localhost:420/oauth';
 const THIS_URL = 'http://172.16.3.209:3000/login';
 const app = express();
 const port = 3000;
+const cors = require('cors');
 
-// Set the view engine to EJS
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.use(cors({origin: '*'}));
 
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: 'mYl!ttL3Gn!',
@@ -30,6 +31,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   } else {
     console.log('Connected to the SQLite database.');
     initializeDatabase();
+    seedDatabaseFromCsv();
   }
 });
 
@@ -77,8 +79,7 @@ function initializeDatabase() {
         lore TEXT,
         rank TEXT,
         creator TEXT,
-        description TEXT,
-        imageUrl TEXT
+        code2 TEXT
       )
     `);
 
@@ -103,6 +104,72 @@ function initializeDatabase() {
   });
 }
 
+function seedDatabaseFromCsv() {
+  const csvPath = path.resolve(__dirname, 'db', 'pogs.csv');
+
+  if (!fs.existsSync(csvPath)) {
+    console.warn('CSV seed file not found:', csvPath);
+    return;
+  }
+
+  const csvData = fs.readFileSync(csvPath, 'utf8');
+  const lines = csvData.split(/\r?\n/).filter(line => line.trim().length > 0);
+
+  function parseCsvLine(line) {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current.trim());
+    return values;
+  }
+
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    lines.forEach((line) => {
+      const values = parseCsvLine(line);
+      const uid = parseInt(values[0], 10);
+      if (Number.isNaN(uid)) {
+        return;
+      }
+
+      const name = values[1] || '';
+      const serial = values[3] || '';
+      const color = values[2] || '';
+      const tags = values[7] || '';
+      const lore = values[6] || '';
+      const rank = values[8] || '';
+      const creator = values[9] || '';
+      const code2 = values[5] || '';
+
+      db.run(`INSERT OR REPLACE INTO pogs (
+        uid, serial, name, color, tags, lore, rank, creator, code2
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [uid, serial, name, color, tags, lore, rank, creator, code2]);
+    });
+
+    db.run('COMMIT');
+  });
+}
+
 function isAuthenticated(req, res, next) {
   if (req.session.user) {
       const tokenData = req.session.token;
@@ -123,22 +190,9 @@ function isAuthenticated(req, res, next) {
   }
 }
 
-// Route to render the index page
+// Route to serve the compiled default index page
 app.get('/', (req, res) => {
-  // Fetch all pogs from the database
-  db.all('SELECT * FROM pogs', (err, pogs) => {
-    if (err) {
-      return res.status(500).send(err.message);
-    }
-
-    // Render the index page with the fetched pogs and pass necessary data to the template
-    res.render('index', {
-      user: req.session.user,
-      pogs: pogs,
-      getBackgroundColor: getBackgroundColor, // Pass the function to the template
-      ranks: darkMode ? darkRanks : lightRanks // Pass the ranks object to the template
-    });
-  });
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Route to handle theme preference
@@ -185,7 +239,7 @@ app.post('/searchPogs', (req, res) => {
 
 // Route to get all pogs with their tags using uid for uid tags
 app.get('/api/pogs', (req, res) => {
-  const sql = 'SELECT uid, serial, name, color, tags, rank FROM pogs';
+  const sql = 'SELECT uid, serial, name, lore, color, tags, rank, code2 FROM pogs';
   db.all(sql, [], (err, rows) => {
     if (err) {
       return res.status(500).send(err.message);
