@@ -79,7 +79,8 @@ function initializeDatabase() {
         lore TEXT,
         rank TEXT,
         creator TEXT,
-        code2 TEXT
+        code2 TEXT, 
+        attribute TEXT
       )
     `);
 
@@ -141,29 +142,33 @@ function seedDatabaseFromCsv() {
     return values;
   }
 
+  const tagCategories = {
+    slammerTag: ['Igglybuff', 'Pichu', 'Magikarp'],
+    itemTag: ['Potion Item', 'Poke Flute Item', 'Switch Item', 'Thunder Stone', 'Fire Stone', 'Water Stone', 'Moon Stone', 'Focus Sash', 'Silph Scope', 'Berry', 'HM01 Cut', 'HM02 Fly', 'HM03 Surf', 'HM04 Dig', 'SS Anne Ticket', 'Fishing Rod', 'Full Heal', 'Old Amber'],
+    energyTag: ['Fairy Energy', 'Fire Energy', 'Water Energy', 'Dark Energy', 'Steel Energy', 'Lightning Energy', 'Grass Energy', 'Psychic Energy', 'Fighting Energy', 'Normal Energy']
+  };
+
+  const getTag = (name) => {
+    if (tagCategories.slammerTag.includes(name)) return 'Slammer';
+    if (tagCategories.itemTag.includes(name)) return 'Item';
+    if (tagCategories.energyTag.includes(name)) return 'Energy';
+    return 'None';
+  };
+
   db.serialize(() => {
     db.run('BEGIN TRANSACTION');
 
     lines.forEach((line) => {
       const values = parseCsvLine(line);
       const uid = parseInt(values[0], 10);
-      if (Number.isNaN(uid)) {
-        return;
-      }
+      if (Number.isNaN(uid)) return;
 
-      const name = values[1] || '';
-      const serial = values[3] || '';
-      const color = values[2] || '';
-      const tags = values[7] || '';
-      const lore = values[6] || '';
-      const rank = values[8] || '';
-      const creator = values[9] || '';
-      const code2 = values[5] || '';
-
+      const [, name, color, serial, , code2, lore, tags, rank, creator] = values;
+      
       db.run(`INSERT OR REPLACE INTO pogs (
-        uid, serial, name, color, tags, lore, rank, creator, code2
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [uid, serial, name, color, tags, lore, rank, creator, code2]);
+        uid, serial, name, color, tags, lore, rank, creator, code2, attribute
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [uid, serial, name || '', color || '', tags || '', lore || '', rank || '', creator || '', code2 || '', getTag(name)]);
     });
 
     db.run('COMMIT');
@@ -239,7 +244,7 @@ app.post('/searchPogs', (req, res) => {
 
 // Route to get all pogs with their tags using uid for uid tags
 app.get('/api/pogs', (req, res) => {
-  const sql = 'SELECT uid, serial, name, lore, color, tags, rank, code2 FROM pogs';
+  const sql = 'SELECT uid, serial, name, lore, color, tags, rank, code2, attribute FROM pogs';
   db.all(sql, [], (err, rows) => {
     if (err) {
       return res.status(500).send(err.message);
