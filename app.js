@@ -244,13 +244,29 @@ app.post('/searchPogs', (req, res) => {
 
 // Route to get all pogs with their tags using uid for uid tags
 app.get('/api/pogs', (req, res) => {
-  const sql = 'SELECT uid, serial, name, lore, color, tags, rank, code2, attribute FROM pogs';
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      return res.status(500).send(err.message);
+  const page = parseInt(req.query.page) || 1;
+  const limit = 14;
+  const offset = (page - 1) * limit;
+  db.all(
+    'SELECT * FROM pogs LIMIT ? OFFSET ?',
+    [limit, offset],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      db.get('SELECT COUNT(*) as total FROM pogs', (err, countRow) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        res.json({
+          data: rows,
+          page,
+          total: countRow.total,
+          totalPages: Math.ceil(countRow.total / limit)
+        });
+      });
     }
-    res.json(rows);
-  });
+  );
 });
 // Route to get all data about an individual pog
 app.get('/api/pogs/:uid', (req, res) => {
@@ -261,7 +277,17 @@ app.get('/api/pogs/:uid', (req, res) => {
     } else {
         res.json(row);
     }
+  });
 });
+
+app.get('/api/declarePage', (req, res) => {
+  page = 1;
+  return page;
+});
+
+app.get('/api/pagify', (req, res) => {
+  page++;
+  return page;
 });
 
 // Route to get all data about an individual pog, including variations
