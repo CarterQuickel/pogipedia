@@ -145,13 +145,15 @@ function seedDatabaseFromCsv() {
   const tagCategories = {
     slammerTag: ['Igglybuff', 'Pichu', 'Magikarp'],
     itemTag: ['Potion Item', 'Poke Flute Item', 'Switch Item', 'Thunder Stone', 'Fire Stone', 'Water Stone', 'Moon Stone', 'Focus Sash', 'Silph Scope', 'Berry', 'HM01 Cut', 'HM02 Fly', 'HM03 Surf', 'HM04 Dig', 'SS Anne Ticket', 'Fishing Rod', 'Full Heal', 'Old Amber'],
-    energyTag: ['Fairy Energy', 'Fire Energy', 'Water Energy', 'Dark Energy', 'Steel Energy', 'Lightning Energy', 'Grass Energy', 'Psychic Energy', 'Fighting Energy', 'Normal Energy']
+    energyTag: ['Fairy Energy', 'Fire Energy', 'Water Energy', 'Dark Energy', 'Steel Energy', 'Lightning Energy', 'Grass Energy', 'Psychic Energy', 'Fighting Energy', 'Normal Energy'],
+    dragonTag: ['Dragon Ball']
   };
 
   const getTag = (name) => {
     if (tagCategories.slammerTag.includes(name)) return 'Slammer';
     if (tagCategories.itemTag.includes(name)) return 'Item';
     if (tagCategories.energyTag.includes(name)) return 'Energy';
+    if (tagCategories.dragonTag.includes(name)) return 'Star';
     return 'None';
   };
 
