@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const AUTH_URL = 'http://localhost:420/oauth';
-const THIS_URL = 'http://172.16.3.209:3000/login';
+const THIS_URL = 'http://172.16.3.225:3000/login';
 const app = express();
 const port = 3000;
 const cors = require('cors');
@@ -244,32 +244,71 @@ app.post('/searchPogs', (req, res) => {
   });
 });
 
-// Route to get all pogs with their tags using uid for uid tags
 app.get('/api/pogs', (req, res) => {
+  const search = req.query.search || "";
+  const tag = req.query.tag || "";
+  const rarity = req.query.rarity || "";
+
   const page = parseInt(req.query.page) || 1;
   const limit = 14;
   const offset = (page - 1) * limit;
-  db.all(
-    'SELECT * FROM pogs LIMIT ? OFFSET ?',
-    [limit, offset],
-    (err, rows) => {
+
+  let where = [];
+  let params = [];
+
+  // SEARCH
+  if (search.trim() !== "") {
+    where.push("name LIKE ?");
+    params.push(`%${search}%`);
+  }
+
+  // TAG
+  if (tag) {
+    where.push("attribute = ?");
+    params.push(tag);
+  }
+
+  // RARITY
+  if (rarity) {
+    where.push("rank = ?");
+    params.push(rarity);
+  }
+
+  const whereSQL = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const dataQuery = `
+    SELECT * FROM pogs
+    ${whereSQL}
+    LIMIT ? OFFSET ?
+  `;
+
+  const countQuery = `
+    SELECT COUNT(*) as total FROM pogs
+    ${whereSQL}
+  `;
+
+  db.all(dataQuery, [...params, limit, offset], (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    db.get(countQuery, params, (err, countRow) => {
       if (err) {
+        console.error(err);
         return res.status(500).json({ error: err.message });
       }
-      db.get('SELECT COUNT(*) as total FROM pogs', (err, countRow) => {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
-        res.json({
-          data: rows,
-          page,
-          total: countRow.total,
-          totalPages: Math.ceil(countRow.total / limit)
-        });
+
+      res.json({
+        data: rows,
+        page,
+        total: countRow.total,
+        totalPages: Math.ceil(countRow.total / limit)
       });
-    }
-  );
+    });
+  });
 });
+
 // Route to get all data about an individual pog
 app.get('/api/pogs/:uid', (req, res) => {
   const uid = req.params.uid;
