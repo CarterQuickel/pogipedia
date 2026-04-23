@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const AUTH_URL = 'http://localhost:420/oauth';
-const THIS_URL = 'http://172.16.3.209:3000/login';
+const THIS_URL = 'http://172.16.3.253:3000/login';
 const app = express();
 const port = 3000;
 const cors = require('cors');
@@ -79,7 +79,8 @@ function initializeDatabase() {
         lore TEXT,
         rank TEXT,
         creator TEXT,
-        code2 TEXT
+        code2 TEXT, 
+        attribute TEXT
       )
     `);
 
@@ -141,29 +142,35 @@ function seedDatabaseFromCsv() {
     return values;
   }
 
+  const tagCategories = {
+    slammerTag: ['Igglybuff', 'Pichu', 'Magikarp'],
+    itemTag: ['Potion Item', 'Poke Flute Item', 'Switch Item', 'Thunder Stone', 'Fire Stone', 'Water Stone', 'Moon Stone', 'Focus Sash', 'Silph Scope', 'Berry', 'HM01 Cut', 'HM02 Fly', 'HM03 Surf', 'HM04 Dig', 'SS Anne Ticket', 'Fishing Rod', 'Full Heal', 'Old Amber'],
+    energyTag: ['Fairy Energy', 'Fire Energy', 'Water Energy', 'Dark Energy', 'Steel Energy', 'Lightning Energy', 'Grass Energy', 'Psychic Energy', 'Fighting Energy', 'Normal Energy'],
+    dragonTag: ['Dragon Ball']
+  };
+
+  const getTag = (name) => {
+    if (tagCategories.slammerTag.includes(name)) return 'Slammer';
+    if (tagCategories.itemTag.includes(name)) return 'Item';
+    if (tagCategories.energyTag.includes(name)) return 'Energy';
+    if (tagCategories.dragonTag.includes(name)) return 'Star';
+    return 'None';
+  };
+
   db.serialize(() => {
     db.run('BEGIN TRANSACTION');
 
     lines.forEach((line) => {
       const values = parseCsvLine(line);
       const uid = parseInt(values[0], 10);
-      if (Number.isNaN(uid)) {
-        return;
-      }
+      if (Number.isNaN(uid)) return;
 
-      const name = values[1] || '';
-      const serial = values[3] || '';
-      const color = values[2] || '';
-      const tags = values[7] || '';
-      const lore = values[6] || '';
-      const rank = values[8] || '';
-      const creator = values[9] || '';
-      const code2 = values[5] || '';
-
+      const [, name, color, serial, , code2, lore, tags, rank, creator] = values;
+      
       db.run(`INSERT OR REPLACE INTO pogs (
-        uid, serial, name, color, tags, lore, rank, creator, code2
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [uid, serial, name, color, tags, lore, rank, creator, code2]);
+        uid, serial, name, color, tags, lore, rank, creator, code2, attribute
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [uid, serial, name || '', color || '', tags || '', lore || '', rank || '', creator || '', code2 || '', getTag(name)]);
     });
 
     db.run('COMMIT');
@@ -237,16 +244,71 @@ app.post('/searchPogs', (req, res) => {
   });
 });
 
-// Route to get all pogs with their tags using uid for uid tags
 app.get('/api/pogs', (req, res) => {
-  const sql = 'SELECT uid, serial, name, lore, color, tags, rank, code2 FROM pogs';
-  db.all(sql, [], (err, rows) => {
+  const search = req.query.search || "";
+  const tag = req.query.tag || "";
+  const rarity = req.query.rarity || "";
+
+  const page = parseInt(req.query.page) || 1;
+  const limit = 14;
+  const offset = (page - 1) * limit;
+
+  let where = [];
+  let params = [];
+
+  // SEARCH
+  if (search.trim() !== "") {
+    where.push("name LIKE ?");
+    params.push(`%${search}%`);
+  }
+
+  // TAG
+  if (tag) {
+    where.push("attribute = ?");
+    params.push(tag);
+  }
+
+  // RARITY
+  if (rarity) {
+    where.push("rank = ?");
+    params.push(rarity);
+  }
+
+  const whereSQL = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const dataQuery = `
+    SELECT * FROM pogs
+    ${whereSQL}
+    LIMIT ? OFFSET ?
+  `;
+
+  const countQuery = `
+    SELECT COUNT(*) as total FROM pogs
+    ${whereSQL}
+  `;
+
+  db.all(dataQuery, [...params, limit, offset], (err, rows) => {
     if (err) {
-      return res.status(500).send(err.message);
+      console.error(err);
+      return res.status(500).json({ error: err.message });
     }
-    res.json(rows);
+
+    db.get(countQuery, params, (err, countRow) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      res.json({
+        data: rows,
+        page,
+        total: countRow.total,
+        totalPages: Math.ceil(countRow.total / limit)
+      });
+    });
   });
 });
+
 // Route to get all data about an individual pog
 app.get('/api/pogs/:uid', (req, res) => {
   const uid = req.params.uid;
@@ -256,7 +318,17 @@ app.get('/api/pogs/:uid', (req, res) => {
     } else {
         res.json(row);
     }
+  });
 });
+
+app.get('/api/declarePage', (req, res) => {
+  page = 1;
+  return page;
+});
+
+app.get('/api/pagify', (req, res) => {
+  page++;
+  return page;
 });
 
 // Route to get all data about an individual pog, including variations
