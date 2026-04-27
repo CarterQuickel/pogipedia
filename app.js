@@ -146,14 +146,18 @@ function seedDatabaseFromCsv() {
     slammerTag: ['Igglybuff', 'Pichu', 'Magikarp'],
     itemTag: ['Potion Item', 'Poke Flute Item', 'Switch Item', 'Thunder Stone', 'Fire Stone', 'Water Stone', 'Moon Stone', 'Focus Sash', 'Silph Scope', 'Berry', 'HM01 Cut', 'HM02 Fly', 'HM03 Surf', 'HM04 Dig', 'SS Anne Ticket', 'Fishing Rod', 'Full Heal', 'Old Amber'],
     energyTag: ['Fairy Energy', 'Fire Energy', 'Water Energy', 'Dark Energy', 'Steel Energy', 'Lightning Energy', 'Grass Energy', 'Psychic Energy', 'Fighting Energy', 'Normal Energy'],
-    dragonTag: ['Dragon Ball']
+    runeTag: ['Rune'],
+    trainerTag: ['Ms.Hicks Trainer', 'Merkert Trainer'],
+    classTag: ['CP', 'York Tech Cyber 22-23', 'Cyber Security', 'SW', 'York Tech Cyber', 'Career Camp', 'Hardware', 'I [Heart] CP']
   };
 
   const getTag = (name) => {
     if (tagCategories.slammerTag.includes(name)) return 'Slammer';
     if (tagCategories.itemTag.includes(name)) return 'Item';
     if (tagCategories.energyTag.includes(name)) return 'Energy';
-    if (tagCategories.dragonTag.includes(name)) return 'Star';
+    if (tagCategories.trainerTag.includes(name)) return 'Trainer';
+    if (name.includes('Rune')) return 'Rune';
+    if (tagCategories.classTag.includes(name)) return 'YCST';
     return 'None';
   };
 
