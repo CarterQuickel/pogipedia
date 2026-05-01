@@ -111,6 +111,23 @@ function initializeDatabase() {
         fb_id TEXT UNIQUE NOT NULL
       )
     `);
+    // Ensure additional columns for role/fid/etc exist
+    db.get("PRAGMA table_info(users)", (err, info) => {
+      // We'll query the table info properly below instead of using this callback value
+    });
+    db.all("PRAGMA table_info(users)", (err, cols) => {
+      if (err) return;
+      const names = (cols || []).map(c => c.name);
+      if (!names.includes('fb_role')) {
+        db.run('ALTER TABLE users ADD COLUMN fb_role TEXT');
+      }
+      if (!names.includes('fid')) {
+        db.run('ALTER TABLE users ADD COLUMN fid TEXT');
+      }
+      if (!names.includes('fb_email')) {
+        db.run('ALTER TABLE users ADD COLUMN fb_email TEXT');
+      }
+    });
   });
 }
 
@@ -436,42 +453,52 @@ app.get('/login', (req, res) => {
 
     req.session.token = tokenData;
 
-    // Normalize possible token fields for id and name
-    const fb_id = tokenData.id || tokenData.sub || tokenData.fb_id || tokenData.user_id;
+    // Normalize possible token fields for id, name, role, fid, email
+    const fb_id = tokenData.id || tokenData.sub || tokenData.fb_id || tokenData.user_id || null;
     const fb_name = tokenData.username || tokenData.name || tokenData.fb_name || tokenData.displayName || 'Unknown User';
+    const fb_role = tokenData.role || tokenData.roles || tokenData.role_name || tokenData.fb_role || null;
+    const fid = tokenData.fid || tokenData.FID || tokenData.formbar_id || null;
+    const fb_email = tokenData.email || tokenData.fb_email || null;
 
-    // Ensure we have at least an id; if missing, set session user and continue
+    // Store in session for later use
+    req.session.user = fb_name;
+    req.session.fb_id = fb_id;
+    req.session.fb_role = fb_role;
+    req.session.fid = fid;
+    req.session.fb_email = fb_email;
+
     if (!fb_id) {
-      console.error('Missing fb_id in token payload', tokenData);
-      req.session.user = fb_name;
+      console.warn('No fb_id available in token; session has limited info', tokenData);
       return res.redirect('/');
     }
 
-    req.session.user = fb_name;
-    const query = `SELECT * FROM users WHERE fb_id = ?`;
-
-    db.get(query, [fb_id], (err, row) => {
+    const selectQuery = `SELECT * FROM users WHERE fb_id = ?`;
+    db.get(selectQuery, [fb_id], (err, row) => {
       if (err) {
         console.error(err);
         return res.status(500).send('There was an error:\n' + err);
       }
 
       if (row) {
-        req.session.user = fb_name; // Ensure session is set
-        console.log('User found in users, redirecting to catalogue');
-        return res.redirect('/');
+        const updateSql = `UPDATE users SET fb_name = ?, fb_role = ?, fid = ?, fb_email = ? WHERE fb_id = ?`;
+        db.run(updateSql, [fb_name, fb_role, fid, fb_email, fb_id], (uErr) => {
+          if (uErr) console.error('Failed to update user fields', uErr);
+          req.session.user = fb_name;
+          console.log('User found and updated, redirecting to catalogue');
+          return res.redirect('/');
+        });
+      } else {
+        const insertSql = `INSERT INTO users (fb_name, fb_id, fb_role, fid, fb_email) VALUES (?, ?, ?, ?, ?)`;
+        db.run(insertSql, [fb_name, fb_id, fb_role, fid, fb_email], function(iErr) {
+          if (iErr) {
+            console.error(iErr);
+            return res.status(500).send('There was an error:\n' + iErr);
+          }
+          req.session.user = fb_name;
+          console.log('User inserted into users, redirecting to catalogue');
+          return res.redirect('/');
+        });
       }
-
-      db.run(`INSERT INTO users(fb_name, fb_id) VALUES(?, ?)`, [fb_name, fb_id], function(err) {
-        if (err) {
-          console.error(err);
-          return res.status(500).send('There was an error:\n' + err);
-        }
-
-        req.session.user = fb_name; // Ensure session is set
-        console.log('User inserted into users, redirecting to catalogue');
-        return res.redirect('/');
-      });
     });
   } else {
     res.redirect(`${AUTH_URL}?redirectURL=${THIS_URL}`);
