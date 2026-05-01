@@ -197,10 +197,26 @@ function seedDatabaseFromCsv() {
 
       const [, name, color, serial, , code2, lore, tags, rank, creator] = values;
       
-      db.run(`INSERT OR REPLACE INTO pogs (
+      // Insert only if the row doesn't exist yet to avoid overwriting user edits (especially `lore`)
+      db.run(`INSERT OR IGNORE INTO pogs (
         uid, serial, name, color, tags, lore, rank, creator, code2, attribute
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [uid, serial, name || '', color || '', tags || '', lore || '', rank || '', creator || '', code2 || '', getTag(name)]);
+      [uid, serial, name || '', color || '', tags || '', lore || '', rank || '', creator || '', code2 || '', getTag(name)], function(err) {
+        if (err) {
+          console.error('Seed insert error for uid', uid, err);
+          return;
+        }
+
+        // If the existing row has no lore, populate it from CSV. This prevents overwriting
+        // any lore that was edited by users after initial seeding.
+        db.run(
+          'UPDATE pogs SET lore = ? WHERE uid = ? AND (lore IS NULL OR TRIM(lore) = "")',
+          [lore || '', uid],
+          function(uErr) {
+            if (uErr) console.error('Seed update lore error for uid', uid, uErr);
+          }
+        );
+      });
     });
 
     db.run('COMMIT');

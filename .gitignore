@@ -3,7 +3,7 @@
 **/pog.db
 
 # Ignore local SQLite database files
-/db/pog.db
+db/pog.db
 db/*.db
 db/*.sqlite
 db/*.sqlite3
