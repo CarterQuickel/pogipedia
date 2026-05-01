@@ -1,2 +1,9 @@
 **/node_modules/
 ~*.docx
+**/pog.db
+
+# Ignore local SQLite database files
+/db/pog.db
+db/*.db
+db/*.sqlite
+db/*.sqlite3
