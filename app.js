@@ -5,7 +5,7 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
-const AUTH_URL = 'http://localhost:420/oauth';
+const AUTH_URL = 'http://formbar.yorktechapps.com/oauth';
 const THIS_URL = 'http://172.16.3.122:3000/login';
 const app = express();
 const port = 3000;
@@ -15,13 +15,22 @@ app.use(cors({origin: '*'}));
 
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'dist')));
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: 'mYl!ttL3Gn!',
   resave: false,
   saveUninitialized: false,
 }));
+
+// Redirect unauthenticated root requests to /login before static files are served
+app.use((req, res, next) => {
+  if (req.path === '/' && !(req.session && req.session.user)) {
+    return res.redirect('/login');
+  }
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Connect to SQLite database
 const dbPath = path.resolve(__dirname, 'db', 'pog.db');
@@ -201,9 +210,14 @@ function isAuthenticated(req, res, next) {
   }
 }
 
-// Route to serve the compiled default index page
+// Route to serve the compiled default index page (require login)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  if (req.session && req.session.user) {
+    return res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  }
+
+  // Not authenticated — redirect to login
+  return res.redirect('/login');
 });
 
 // Route to handle theme preference
@@ -325,6 +339,32 @@ app.get('/api/pogs/:uid', (req, res) => {
   });
 });
 
+// Route to update a pog's description (lore)
+app.put('/api/pogs/:uid/description', (req, res) => {
+  const uid = req.params.uid;
+  const { lore } = req.body;
+
+  if (typeof lore !== 'string') {
+    return res.status(400).json({ error: 'Invalid or missing `lore` in request body' });
+  }
+
+  db.run('UPDATE pogs SET lore = ? WHERE uid = ?', [lore, uid], function(err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    // Return the updated row
+    db.get('SELECT * FROM pogs WHERE uid = ?', [uid], (err, row) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ success: true, data: row });
+    });
+  });
+});
+
 app.get('/api/declarePage', (req, res) => {
   page = 1;
   return page;
@@ -386,44 +426,66 @@ app.get('/api/collections/:name', (req, res) => {
 // Route to log users in through Formbar Oauth
 app.get('/login', (req, res) => {
   if (req.query.token) {
-    let tokenData = jwt.decode(req.query.token);
-    req.session.token = tokenData;
-    req.session.user = tokenData.username;
+    let tokenData;
+    try {
+      tokenData = jwt.decode(req.query.token) || {};
+    } catch (e) {
+      console.error('Failed to decode token', e);
+      return res.status(400).send('Invalid token');
+    }
 
-    let fb_id = req.session.token.id;
-    let fb_name = req.session.user;
-    let query = `SELECT * FROM users WHERE fb_id = ?`;
+    req.session.token = tokenData;
+
+    // Normalize possible token fields for id and name
+    const fb_id = tokenData.id || tokenData.sub || tokenData.fb_id || tokenData.user_id;
+    const fb_name = tokenData.username || tokenData.name || tokenData.fb_name || tokenData.displayName || 'Unknown User';
+
+    // Ensure we have at least an id; if missing, set session user and continue
+    if (!fb_id) {
+      console.error('Missing fb_id in token payload', tokenData);
+      req.session.user = fb_name;
+      return res.redirect('/');
+    }
+
+    req.session.user = fb_name;
+    const query = `SELECT * FROM users WHERE fb_id = ?`;
 
     db.get(query, [fb_id], (err, row) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('There was an error:\n' + err);
+      }
+
+      if (row) {
+        req.session.user = fb_name; // Ensure session is set
+        console.log('User found in users, redirecting to catalogue');
+        return res.redirect('/');
+      }
+
+      db.run(`INSERT INTO users(fb_name, fb_id) VALUES(?, ?)`, [fb_name, fb_id], function(err) {
         if (err) {
-            console.log(err);
-            console.error(err);
-            res.send("There was an error:\n" + err)
-        } else if (row) {
-            req.session.user = fb_name; // Ensure session is set
-            console.log("User found in users, redirecting to catologue");
-            res.redirect('/');
-        } else {
-            db.run(`INSERT INTO users(fb_name, fb_id) VALUES(?, ?)`, [fb_name, fb_id], (err) => {
-                if (err) {
-                    console.log(err);
-                    console.error(err);
-                    res.send("There was an error:\n" + err)
-                } else {
-                    req.session.user = fb_name; // Ensure session is set
-                    console.log("User inserted into users, redirecting to catalogue");
-                    res.redirect('/');
-                }
-            });
+          console.error(err);
+          return res.status(500).send('There was an error:\n' + err);
         }
+
+        req.session.user = fb_name; // Ensure session is set
+        console.log('User inserted into users, redirecting to catalogue');
+        return res.redirect('/');
+      });
     });
-} else {
+  } else {
     res.redirect(`${AUTH_URL}?redirectURL=${THIS_URL}`);
-}
+  }
 });
 
 // Start the server
 // on port 3000
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+});
+
+app.get('/getdata', (req, res) => {
+  res.json({
+    user: req.session.user || 'Guest',
+  });
 });
