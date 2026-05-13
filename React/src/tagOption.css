@@ -1,0 +1,98 @@
+.tag-option {
+    min-width: 300px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgb(49, 49, 49);
+    border-radius: 55px;
+    padding: 10px;
+    scale: 0.9;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tag-option .addTxt {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 100;
+    opacity: 0;
+}
+
+.tag-option h3 {
+    margin: 0;
+    font-size: 0.9em;
+}
+
+.tag-option .option-text {
+    color: white;
+    padding: 2px 10px;
+    border-radius: 40px;
+    z-index: 4;
+    margin: 0;
+    transition: all 0.2s ease;
+}
+
+.tag-option:hover {
+    transform: scale(1.025);
+}
+
+.tag-option:hover .addTxt {
+    opacity: 1;
+}
+
+.tag-option.none,
+.tag-option.slammer,
+.tag-option.item,
+.tag-option.energy {
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.tag-option.slammer:hover {
+    background: #ff6347;
+}
+
+.tag-option.item:hover {
+    background: #1e90ff;
+}
+
+.tag-option.energy:hover {
+    background: #8f32cd;
+}
+
+.tag-option.trainer:hover {
+    background: #1aa02c;
+}
+
+.tag-option.ycst:hover {
+    background: #174e25;
+}
+
+.tag-option.rune:hover {
+    background: #f09723;
+}
+
+.tag-option.trash:hover {
+    background: var(--trash-col);
+}
+
+.tag-option.common:hover {
+    background: var(--common-col);
+}
+
+.tag-option.uncommon:hover {
+    background: var(--uncommon-col);
+}
+
+.tag-option.rare:hover {
+    background: var(--rare-col);
+}
+
+.tag-option.legendary:hover {
+    background: var(--legendary-col);
+}
+
+.tag-option.mythic:hover {
+    background: var(--mythic-col);
+}

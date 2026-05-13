@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const AUTH_URL = 'http://formbar.yorktechapps.com/oauth';
-const THIS_URL = 'http://172.16.3.194:3000/login';
+const THIS_URL = 'http://172.16.3.124:3000/login';
 const app = express();
 const port = 3000;
 const cors = require('cors');
@@ -29,8 +29,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'React/dist')));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/pogs', express.static(path.join(__dirname, 'pogs')));
+app.use('/icons', express.static(path.join(__dirname, 'icons')));
 
 // Connect to SQLite database
 const dbPath = path.resolve(__dirname, 'db', 'pog.db');

@@ -1,0 +1,60 @@
+:root {
+    --gray-light: rgb(131, 131, 131);
+    --offset-ani: -80px;
+}
+
+.pog {
+    border: 2px solid var(--gray-light);
+    border-radius: 50%;
+    width: 100px;
+    height: 100px;
+    margin-top: -60px;
+    transition: all 0.5s ease-in-out;
+}
+
+.pog:not(.bot) {
+    animation: moveup 3s ease-in-out infinite alternate;
+}
+
+.pog:hover{
+    box-shadow: 0 0 5px white;
+}
+
+.pog.top {
+    animation-delay: 0s;
+}
+
+.pog.sec {
+    animation-delay: 0.2s;
+}
+
+.pog.mid {
+    animation-delay: 0.4s;
+}
+
+@keyframes moveup {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    30%, 70% {
+        transform: translateY(var(--offset-ani));
+    }
+}
+
+.absolute {
+    position: absolute;
+    z-index: -1;
+    filter: opacity(0.5);
+    pointer-events: none;
+}
+
+.contain {
+    position: relative;
+    perspective: 800px;
+    transform: rotateX(60deg); 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 1px;
+}
