@@ -17,7 +17,6 @@ function App() {
   const [selectedPog, setSelectedPog] = useState<Pog | null>(null);
   const [typingInBox, setTypingInBox] = useState(false);
   const [newDesc, setNewDesc] = useState("");
-  const [newRank, setNewRank] = useState("");
   const [user, setUser] = useState<string | null>(null);
   const IP = "172.16.3.124"; // Local IP address of the backend server, change if needed
   const admin = user === "CarterQ" || user === "MrSmith" || user === "VincentL";
@@ -159,12 +158,12 @@ function App() {
                         headers: {
                           'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ lore: newDesc, rank: newRank }),
+                        body: JSON.stringify({ lore: newDesc }),
                       })
                       .then(res => res.json())
                       .then(data => {
                         if (selectedPog) {
-                          setSelectedPog({ ...selectedPog, lore: newDesc, rank: newRank });
+                          setSelectedPog({ ...selectedPog, lore: newDesc });
                           console.log(`${selectedPog.name}'s description updated to "${newDesc}"`, data);
                         }
                       })
@@ -194,16 +193,7 @@ function App() {
               )}
               <div className = "infoCont">
                 <div className = "inf">
-                  {typingInBox ? (
-                    <input 
-                      className="descEditInput" 
-                      type="text" 
-                      value={newRank}
-                      onChange={(e) => setNewRank(e.target.value)}
-                    />
-                  ) : (
                     <h5>Rarity: {selectedPog?.rank}</h5>
-                  )}
                 </div>
                 <div className = "inf">
                   <h5>Creator: {selectedPog?.creator}</h5>
