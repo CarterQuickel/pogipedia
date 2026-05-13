@@ -1,4 +1,7 @@
 Pogs Collection Manager
+
+**To see the official documentation, go into the Wiki folder and view the raw .docx.**
+
 Overview
 
 Pogs Collection Manager is a web app designed for tracking, organizing, and showcasing pog collections. Whether you’re a collector cataloging your pogs or a trader managing swaps, this app offers a simple, efficient way to manage your collection.
