@@ -1,0 +1,119 @@
+.filter-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    background-color: rgb(49, 49, 49);
+    border-radius: 55px;
+    min-width: 300px;
+}
+
+.filter h3 {
+    margin: 10px;
+}
+
+.filter .arrow {
+    filter: invert(1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-cont {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.add-cont:hover .slot {
+    animation-name: showSlot;
+    animation-duration: 0.1s;
+    animation-timing-function: ease-in-out;
+    animation-fill-mode: forwards;
+}
+
+.options {
+    z-index: 80;
+    border-radius: 10px;
+    width: 100%;
+    right: -80px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    animation: showOptions 0.3s ease forwards;
+}
+
+@keyframes showOptions {
+    0% {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.arrow.rotate {
+    transform: rotate(45deg);
+}
+
+.tag-label {
+    display: flex;
+    gap: 10px;
+    padding: 5px;
+    border-radius: 55px;
+}
+
+.tag-label.slammer {
+    background: #ff6347;
+}
+
+.tag-label.item {
+    background: #1e90ff;
+}
+
+.tag-label.energy {
+    background: #8f32cd;
+}
+
+.tag-label.trainer {
+    background: #1aa02c;
+}
+
+.tag-label.rune {
+    background: #f09723;
+}
+
+.tag-label.ycst {
+    background: #174e25;
+}
+
+.tag-label.trash {
+    background: var(--trash-col);
+}
+
+.tag-label.common {
+    background: var(--common-col);
+}
+
+.tag-label.uncommon {
+    background: var(--uncommon-col);
+}
+
+.tag-label.rare {
+    background: var(--rare-col);
+}
+
+.tag-label.legendary {
+    background: var(--legendary-col);
+}
+
+.tag-label.mythic {
+    background: var(--mythic-col);
+}

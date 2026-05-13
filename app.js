@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const AUTH_URL = 'http://formbar.yorktechapps.com/oauth';
-const THIS_URL = 'http://172.16.3.122:3000/login';
+const THIS_URL = 'http://172.16.3.124:3000/login';
 const app = express();
 const port = 3000;
 const cors = require('cors');
@@ -29,8 +29,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'React/dist')));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/pogs', express.static(path.join(__dirname, 'pogs')));
+app.use('/icons', express.static(path.join(__dirname, 'icons')));
 
 // Connect to SQLite database
 const dbPath = path.resolve(__dirname, 'db', 'pog.db');
@@ -373,15 +375,15 @@ app.get('/api/pogs/:uid', (req, res) => {
 });
 
 // Route to update a pog's description (lore)
-app.put('/api/pogs/:uid/description', (req, res) => {
+app.put('/api/pogs/:uid/changeInfo', (req, res) => {
   const uid = req.params.uid;
-  const { lore } = req.body;
+  const { lore, rank } = req.body;
 
   if (typeof lore !== 'string') {
     return res.status(400).json({ error: 'Invalid or missing `lore` in request body' });
   }
 
-  db.run('UPDATE pogs SET lore = ? WHERE uid = ?', [lore, uid], function(err) {
+  db.run('UPDATE pogs SET lore = ?, rank = ? WHERE uid = ?', [lore, rank, uid], function(err) {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: err.message });
