@@ -17,7 +17,6 @@ function App() {
   const [selectedPog, setSelectedPog] = useState<Pog | null>(null);
   const [typingInBox, setTypingInBox] = useState(false);
   const [newDesc, setNewDesc] = useState("");
-  const [newRank, setNewRank] = useState("");
   const [user, setUser] = useState<string | null>(null);
   const IP = "172.16.3.124"; // Local IP address of the backend server, change if needed
   const admin = user === "CarterQ" || user === "MrSmith" || user === "VincentL";
