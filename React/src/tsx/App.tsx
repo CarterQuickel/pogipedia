@@ -158,12 +158,12 @@ function App() {
                         headers: {
                           'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ lore: newDesc, rank: newRank }),
+                        body: JSON.stringify({ lore: newDesc }),
                       })
                       .then(res => res.json())
                       .then(data => {
                         if (selectedPog) {
-                          setSelectedPog({ ...selectedPog, lore: newDesc, rank: newRank });
+                          setSelectedPog({ ...selectedPog, lore: newDesc });
                           console.log(`${selectedPog.name}'s description updated to "${newDesc}"`, data);
                         }
                       })
