@@ -194,16 +194,7 @@ function App() {
               )}
               <div className = "infoCont">
                 <div className = "inf">
-                  {typingInBox ? (
-                    <input 
-                      className="descEditInput" 
-                      type="text" 
-                      value={newRank}
-                      onChange={(e) => setNewRank(e.target.value)}
-                    />
-                  ) : (
                     <h5>Rarity: {selectedPog?.rank}</h5>
-                  )}
                 </div>
                 <div className = "inf">
                   <h5>Creator: {selectedPog?.creator}</h5>
