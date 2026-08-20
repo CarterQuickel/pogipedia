@@ -18,7 +18,7 @@ function App() {
   const [typingInBox, setTypingInBox] = useState(false);
   const [newDesc, setNewDesc] = useState("");
   const [user, setUser] = useState<string | null>(null);
-  const IP = "172.16.3.124"; // Local IP address of the backend server, change if needed
+  const IP = "172.16.3.206"; // Local IP address of the backend server, change if needed
   const admin = user === "CarterQ" || user === "MrSmith" || user === "VincentL";
   const colors = {
     Trash: '#757028',
