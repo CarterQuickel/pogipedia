@@ -23,7 +23,7 @@ function App() {
   const [newTags, setNewTags] = useState("");
   const [newColor, setNewColor] = useState("");
   const [user, setUser] = useState<string | null>(null);
-  const IP = "172.16.3.254"; // Local IP address of the backend server, change if needed
+  const IP = import.meta.env.VITE_API_IP || "172.16.3.254"; // Local IP address of the backend server
   const admin = user === "CarterQ" || user === "MrSmith" || user === "VincentL";
   const colors = {
     Trash: '#757028',
